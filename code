@@ -1,0 +1,53 @@
+from tkinter import Tk, filedialog, messagebox, simpledialog
+from cryptography.fernet import Fernet
+from stegano import lsb
+
+def generate_key():
+    key = Fernet.generate_key()
+    with open("secret.key", "wb") as key_file:
+        key_file.write(key)
+    return key.decode()
+
+def encrypt_message(message, key):
+    f = Fernet(key)
+    encrypted_message = f.encrypt(message.encode())
+    return encrypted_message
+
+def encode():
+    Tk().withdraw()
+    image_path = filedialog.askopenfilename()
+    secret_message = simpledialog.askstring("Input", "Enter the secret message to hide in the image:")
+    key = generate_key()
+    encrypted_message = encrypt_message(secret_message, key)
+    hidden_message = key + ' ' + encrypted_message.decode()
+    output_image_path = filedialog.asksaveasfilename()
+    secret_image = lsb.hide(image_path, hidden_message)
+    secret_image.save(output_image_path)
+    messagebox.showinfo("Success", f"Message encoded and saved to {output_image_path}")
+
+def decrypt_message(encrypted_message, key):
+    f = Fernet(key)
+    decrypted_message = f.decrypt(encrypted_message.encode())
+    return decrypted_message.decode()
+
+def decode():
+    Tk().withdraw()
+    image_path = filedialog.askopenfilename()
+    hidden_message = lsb.reveal(image_path)
+    key, encrypted_message = hidden_message.split(' ', 1)
+    decrypted_message = decrypt_message(encrypted_message, key)
+    messagebox.showinfo("Decoded message", decrypted_message)
+
+if __name__ == "__main__":
+    root = Tk()
+    root.withdraw()
+    while True:
+        option = simpledialog.askstring("Input", "Enter 'encode' to encode a message, 'decode' to decode a message, or 'quit' to quit:")
+        if option.lower() == 'encode':
+            encode()
+        elif option.lower() == 'decode':
+            decode()
+        elif option.lower() == 'quit':
+            break
+        else:
+            messagebox.showinfo("Invalid option", "Please enter 'encode', 'decode', or 'quit'.")
